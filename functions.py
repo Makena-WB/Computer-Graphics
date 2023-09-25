@@ -34,11 +34,12 @@ def generate_email(name):
 
 
 
-
 def get_male_students(df):
-    return df[df['Gender'] == 'M']
+    return df[df['Gender'] == 'M']['Student Name'].tolist()
 
 def get_female_students(df):
-    return df[df['Gender'] == 'F']
+    return df[df['Gender'] == 'F']['Student Name'].tolist()
+
+
 
 

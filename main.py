@@ -11,10 +11,6 @@ log_file_path = os.path.join(logs, 'app.log')
 
 df = pd.read_excel('data/Test Files.xlsx')
 
-# Extract male and female names from the DataFrame
-male_names = df[df['Gender'] == 'M']['Student Name'].tolist()
-female_names = df[df['Gender'] == 'F']['Student Name'].tolist()
-
 # Load the student data from the Excel file
 
 # Apply the generate_email function to create a new 'Email Address' column
@@ -28,8 +24,6 @@ df.to_csv(tsv_file_path, sep='\t', index=False)
 
 # Save the data as CSV (Comma-Separated Values)
 df.to_csv(csv_file_path, index=False)
-
-
 
 male_students = get_male_students(df)
 female_students = get_female_students(df)
@@ -51,6 +45,13 @@ with open(log_file_path, 'a') as log_file:
     log_file.write('Names of Students with Special Characters:\n')
     for name in special_character_names_list:
         log_file.write(f'{name}\n')
+
+
+male_names_list = get_male_students(df)
+female_names_list = get_female_students(df)
+
+print("Male Students:", male_names_list)
+print("Female Students:", female_names_list)
 
 print(f'Number of Male Students: {num_male_students}')
 print(f'Number of Female Students: {num_female_students}')
