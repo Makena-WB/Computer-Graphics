@@ -4,6 +4,7 @@ from transformers import AutoTokenizer
 from transformers import AutoModel
 import json
 import os
+
 import torch
 import random
 import re
@@ -64,6 +65,57 @@ print(f'Number of Male Students: {num_male_students}')
 print(f'Number of Female Students: {num_female_students}')
 
 
+
+# Load male and female names from TSV and CSV files
+male_names = pd.read_csv('male_names.csv')['name'].tolist()
+female_names = pd.read_csv('female_names.tsv', sep='\t')['name'].tolist()
+
+# Preprocess names
+tokenizer = LaBSETokenizer.from_pretrained("setu4993/LaBSE")
+male_names = [tokenizer.tokenize(name.lower()) for name in male_names]
+female_names = [tokenizer.tokenize(name.lower()) for name in female_names]
+
+# Load LaBSE model
+model = LaBSE.from_pretrained("setu4993/LaBSE")
+
+# Calculate similarity scores
+similarity_matrix = []
+for male_name in male_names:
+    row = []
+    for female_name in female_names:
+        inputs = tokenizer.encode_plus(
+            male_name, female_name, return_tensors="pt", padding=True, truncation=True
+        )
+        with torch.no_grad():
+            embeddings = model(**inputs).pooler_output
+        similarity_score = torch.nn.functional.cosine_similarity(embeddings[0], embeddings[1], dim=0)
+        row.append(similarity_score.item())
+    similarity_matrix.append(row)
+
+# Filter results with at least 50% similarity
+filtered_results = []
+for i, male_name in enumerate(male_names):
+    for j, female_name in enumerate(female_names):
+        if similarity_matrix[i][j] >= 0.5:
+            filtered_results.append({
+                "male_name": male_name,
+                "female_name": female_name,
+                "similarity_score": similarity_matrix[i][j]
+            })
+
+# Save filtered results in a JSON file
+with open('similarity_results.json', 'w') as f:
+    json.dump(filtered_results, f)
+
+
+
+
+
+
+
+
+
+
 # Merge all the shuffled names and save as a JSON file
 all_names = male_names + female_names
 random.shuffle(all_names)
@@ -71,3 +123,4 @@ shuffled_df = pd.DataFrame({'Shuffled Names': all_names})
 shuffled_json_file = 'data/shuffled_names.json'
 shuffled_df.to_json(shuffled_json_file, orient='split')
 print(f"Merged and shuffled {len(all_names)} names saved to '{shuffled_json_file}'")
+
