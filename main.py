@@ -1,42 +1,54 @@
 import pandas as pd
-import os
+from sentence_transformers import SentenceTransformer, util
+from transformers import AutoTokenizer
+from transformers import AutoModel
 import json
-from transformers import LaBSE, LaBSETokenizer
+import os
+
+import torch
+import random
+import re
 
 
+model_name = "sentence-transformers/LaBSE"
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = AutoModel.from_pretrained(model_name)
 
 from functions import get_male_students, get_female_students, generate_email
 
 logs = 'logs'
 log_file_path = os.path.join(logs, 'app.log')
 
+df_3b = pd.read_excel('data/Test Files.xlsx', sheet_name='3B')
+df_3c = pd.read_excel('data/Test Files.xlsx', sheet_name='3C')
 
-df = pd.read_excel('data/Test Files.xlsx')
+combined_df = pd.concat([df_3b, df_3c], ignore_index=True)
 
 # Extract male and female names from the DataFrame
-male_names = df[df['Gender'] == 'M']['Student Name'].tolist()
-female_names = df[df['Gender'] == 'F']['Student Name'].tolist()
-
-# Load the student data from the Excel file
+male_names = combined_df[combined_df['Gender'] == 'M']['Student Name'].tolist()
+female_names = combined_df[combined_df['Gender'] == 'F']['Student Name'].tolist()
 
 # Apply the generate_email function to create a new 'Email Address' column
-df['Email Address'] = df['Student Name'].apply(generate_email)
+combined_df['Email Address'] = combined_df['Student Name'].apply(lambda name: generate_email(name, combined_df))
 
 tsv_file_path = 'data/student_data.tsv'
 csv_file_path = 'data/student_data.csv'
 
 # Save the data as TSV (Tab-Separated Values)
-df.to_csv(tsv_file_path, sep='\t', index=False)
+combined_df.to_csv(tsv_file_path, sep='\t', index=False)
 
 # Save the data as CSV (Comma-Separated Values)
-df.to_csv(csv_file_path, index=False)
+combined_df.to_csv(csv_file_path, index=False)
 
+# Filter and separate students with special characters
+special_character_names = combined_df[combined_df['Student Name'].str.contains(r'[^\w\s\\\'-]', regex=True, na=False)]
+special_character_names_list = special_character_names['Student Name'].tolist()
 
+# Separate Male and Female students
+male_students = get_male_students(combined_df)
+female_students = get_female_students(combined_df)
 
-male_students = get_male_students(df)
-female_students = get_female_students(df)
-
-# Log the number of male and female students
+# Log the number of Male and Female students
 num_male_students = len(male_students)
 num_female_students = len(female_students)
 
@@ -44,18 +56,14 @@ with open(log_file_path, 'w') as log_file:
     log_file.write(f'Number of Male Students: {num_male_students}\n')
     log_file.write(f'Number of Female Students: {num_female_students}\n')
 
-# List names of students with special characters using regex (if needed)
-special_character_names = df[df['Student Name'].str.contains(r'[^\w\s\\\'-]', regex=True, na=False)]
-special_character_names_list = special_character_names['Student Name'].tolist()
-
-# Log the names of students with special characters to the same log file
-with open(log_file_path, 'a') as log_file:
+    # Log the names of students with special characters
     log_file.write('Names of Students with Special Characters:\n')
     for name in special_character_names_list:
         log_file.write(f'{name}\n')
 
 print(f'Number of Male Students: {num_male_students}')
 print(f'Number of Female Students: {num_female_students}')
+
 
 
 # Load male and female names from TSV and CSV files
@@ -106,4 +114,13 @@ with open('similarity_results.json', 'w') as f:
 
 
 
+
+
+# Merge all the shuffled names and save as a JSON file
+all_names = male_names + female_names
+random.shuffle(all_names)
+shuffled_df = pd.DataFrame({'Shuffled Names': all_names})
+shuffled_json_file = 'data/shuffled_names.json'
+shuffled_df.to_json(shuffled_json_file, orient='split')
+print(f"Merged and shuffled {len(all_names)} names saved to '{shuffled_json_file}'")
 

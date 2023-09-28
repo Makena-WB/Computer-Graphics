@@ -1,9 +1,10 @@
 import pandas as pd
 
-df = pd.read_excel('data/Test Files.xlsx')
 
-def generate_email(name):
-    # Remove special characters and spaces from the name
+df_3b = pd.read_excel('data/Test Files.xlsx', sheet_name='3B')
+df_3c = pd.read_excel('data/Test Files.xlsx', sheet_name='3C')
+
+def generate_email(name, combined_df):    # Remove special characters and spaces from the name
     name = ''.join(e for e in name if e.isalnum() or e.isspace())
 
     # Split the name into parts
@@ -23,7 +24,7 @@ def generate_email(name):
         # Ensure email address uniqueness
         counter = 1
         original_email = email
-        while email in df['Email Address']:
+        while email in combined_df['Email Address']:
             email = f"{first_name[0]}{last_name}{counter}".lower() + "@gmail.com"
             counter += 1
 
@@ -35,10 +36,10 @@ def generate_email(name):
 
 
 
-def get_male_students(df):
-    return df[df['Gender'] == 'M']
+def get_male_students(combined_df):
+    return combined_df[combined_df['Gender'] == 'M']
 
-def get_female_students(df):
-    return df[df['Gender'] == 'F']
+def get_female_students(combined_df):
+    return combined_df[combined_df['Gender'] == 'F']
 
 
